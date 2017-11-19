@@ -93,6 +93,7 @@ while read line; do
 	fi
 done < /tmp/pre_formatted.csv
 
+echo "added ${addNum} element" | prefix
 echo "finished formatting commute log" | prefix
 
 
