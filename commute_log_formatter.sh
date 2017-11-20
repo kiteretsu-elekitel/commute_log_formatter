@@ -96,6 +96,10 @@ done < /tmp/pre_formatted.csv
 echo "added ${addNum} element" | prefix
 echo "finished formatting commute log" | prefix
 
+#insert split line if the day was Monday
+if [[ $(date +%s) = "Mon" ]]; then
+	echo "-------------------------" >> commute_log_${year}-${num_month}.csv
+fi
 
 # if first day of month, current file change to past file and archive before 2 month file
 if [[ "$(date +%d)" = "01" ]]; then
