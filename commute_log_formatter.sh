@@ -86,6 +86,10 @@ while read line; do
 			echo "Added arrived time ${year}/${num_month}/${logday},${loghour}:${logminute}" | prefix
 			addNum=$((${addNum} + 1))
 		else
+			if [[ "$(grep "${year}/${num_month}/${logday}" commute_log_${year}-${num_month}.csv)" = "" ]]; then
+				echo "${year}/${num_month}/${logday}" >> commute_log_${year}-${num_month}.csv
+				echo "No log arrived time today. Add date" | prefix
+			fi
 			sed -i -e "/${year}\/${num_month}\/${logday}/s/$/,${loghour}:${logminute}/g" commute_log_${year}-${num_month}.csv
 			echo "Add leave time ${loghour}:${logminute}" | prefix
 			addNum=$((${addNum} + 1))
