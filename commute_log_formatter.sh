@@ -8,8 +8,9 @@ echo "************** Start formating commute log file **************" | prefix
 bench="/home/ladygrey/Documents/commute_log_store"
 cd ${bench}
 
-glist=$(gdrive list)
-iftttId=$(echo "$glist" | grep 'commute_log_IFTTT' | cut -d' ' -f 1)
+#get file id
+glist=$(gdrive list -q 'name contains "commute"')
+iftttId=$(echo "$glist" | grep 'commute_log_IFTTT.*doc' | awk '{print $1}')
 echo "detected ${iftttId}" | prefix
 echo "============== Start downloading commute log file ==============" | prefix
 gdrive export -f --mime text/csv "$iftttId" | prefix
@@ -94,6 +95,8 @@ while read line; do
 			echo "Add leave time ${loghour}:${logminute}" | prefix
 			addNum=$((${addNum} + 1))
 		fi
+	else
+		echo "$yesterday" >> commute_log_${year}-${num_month}.csv
 	fi
 done < /tmp/pre_formatted.csv
 
