@@ -1,4 +1,5 @@
-#!/usr/bin/bash
+#!/bin/bash
+
 prefix() {
 	time=$(date "+[%Y-%m-%d %H:%M:%S] ")
 	sed -u "s/^/${time}/"
@@ -34,6 +35,9 @@ echo -e '\n' >> /tmp/pre_formatted.csv
 
 echo "============== Start formatting commute log ==============" | prefix
 addNum=0
+
+inputFlg = false
+
 #formatting
 while read line; do
 	logtype=$(echo ${line} | cut -d, -f 1)
@@ -86,6 +90,7 @@ while read line; do
 			echo "${year}/${num_month}/${logday},${loghour}:${logminute}" >> commute_log_${year}-${num_month}.csv
 			echo "Added arrived time ${year}/${num_month}/${logday},${loghour}:${logminute}" | prefix
 			addNum=$((${addNum} + 1))
+			inputFlg = true
 		else
 			if [[ "$(grep "${year}/${num_month}/${logday}" commute_log_${year}-${num_month}.csv)" = "" ]]; then
 				echo "${year}/${num_month}/${logday}" >> commute_log_${year}-${num_month}.csv
@@ -94,11 +99,16 @@ while read line; do
 			sed -i -e "/${year}\/${num_month}\/${logday}/s/$/,${loghour}:${logminute}/g" commute_log_${year}-${num_month}.csv
 			echo "Add leave time ${loghour}:${logminute}" | prefix
 			addNum=$((${addNum} + 1))
+			inputFlg = true
 		fi
-	else
-		echo "$yesterday" >> commute_log_${year}-${num_month}.csv
 	fi
 done < /tmp/pre_formatted.csv
+
+#if input nothing, input only data yesterday
+if [[ ! $inputFlg ]]; then
+	yesterday=$(date --date '1 day ago' +%Y/%m/%d)
+	echo "${yesterday}" >> commute_log_${year}-${num_monthj}.csv
+fi
 
 echo "added ${addNum} element" | prefix
 echo "finished formatting commute log" | prefix
