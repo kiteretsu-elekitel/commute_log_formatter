@@ -3,6 +3,7 @@ import pandas
 import datetime
 import subprocess
 import re
+import sys
 
 def Logger(message):
     currentTime = datetime.datetime.now()
@@ -43,7 +44,7 @@ def gen_raw_csv(fileId):
 
     return pandas.read_csv('commute_log_raw.csv', header=None)
 
-def Format_CSV(rawCsv):
+def format_CSV(rawCsv):
     rawCsv = rawCsv.replace('Arrived at location', 'A')
     rawCsv = rawCsv.replace('Left location', 'L')
 
@@ -67,32 +68,93 @@ def Format_CSV(rawCsv):
     #formatting time AM/PM to Millitary time
     for i in range(len(rawCsv)):
         bTime = rawCsv[1][i]
-        bFormat = '%Y/%m/%d %I:%M%p'
-        dt = datetime.datetime.strptime(bTime, bFormat)
+        dt = datetime.datetime.strptime(bTime, '%Y/%m/%d %I:%M%p')
         aTime = dt.strftime('%Y/%m/%d %H:%M')
         rawCsv[1][i] = aTime
 
+    return rawCsv
 
-    print(rawCsv)
+def getLastData(csv):
+    today = datetime.datetime.now()
+    #yesterday = today - datetime.timedelta(days=1)
+    yesterday = today - datetime.timedelta(days=4)
+
+    strYesterday = yesterday.strftime('%Y/%m/%d')
+    lastData = csv[csv[1].str.contains(strYesterday)]
+    print(lastData)
+
+    lineA = lastData[lastData[0] == 'A']
+    lineL = lastData[lastData[0] == 'L']
+    # split colume 1 and get it
+    lineADate = lineA[1].str.split(' ', expand=True)
+    lineLDate = lineL[1].str.split(' ', expand=True)
+
+
+    # add date to resultCSV
+    resultCSV = []
+    resultCSV.append(strYesterday)
+
+    #Process arrived time
+    listAtime = lineADate[1]
+    sorttedA = sorted(listAtime)
+    resultCSV.append(sorttedA[0])
+
+    #Process left time
+    listLtime = lineLDate[1]
+    sorttedL = sorted(listLtime)
+    for i in sorttedL:
+        resultCSV.append(i)
+
+    return resultCSV
+
+
+def writeToCurrentCSV(lastData):
+    # generate file name
+    today = datetime.datetime.now()
+    targetDate = today - datetime.timedelta(days=1)
+    filedate = targetDate.strftime('%Y-%m')
+    filename = 'commute_log_' + filedate + '.csv'
+
+    num = len(lastData)
+    list2 = [[0]*num]*2
+    print(list2)
+    col = 0
+    for i in lastData:
+        list2[0][col] = i
+        col = col + 1
+
+
+    #export csv to pandas
+    ps = pandas.DataFrame(list2)
+    ps.head(1).to_csv(sys.stdout, header=False, index=False)
+
+
+
+
 
 Logger("************** Start formating commute log file **************")
 
 bench = "/home/ladygrey/Documents/commute_log_store"
 
 #get file list
-fileDec = get_file_dec()
+#fileDec = get_file_dec()
 
 #check exist commute_log_IFTTT
-if not ('commute_log_IFTTT' in fileDec):
-    Logger("[ERROR]Can't find commute_log_IFTTT file.")
-    exit(1)
+#if not ('commute_log_IFTTT' in fileDec):
+#    Logger("[ERROR]Can't find commute_log_IFTTT file.")
+#    exit(1)
 
 Logger("============== Start downloading commute log file ==============")
 
 #Download commute_log_IFTTT and rename to commute_log_raw.csv
-rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
+#rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
+rawCsv = pandas.read_csv('commute_log_raw.csv', header=None)
 
 #Formatting CSV file
-Format_CSV(rawCsv)
+formattedCSV = format_CSV(rawCsv)
 
+#get last day data
+lastData = getLastData(formattedCSV)
 
+#write to current csv file
+writeToCurrentCSV(lastData)
