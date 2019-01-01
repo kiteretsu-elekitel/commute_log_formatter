@@ -1,3 +1,4 @@
+#!/bin/python3
 import os
 import pandas
 import datetime
@@ -45,6 +46,7 @@ def gen_raw_csv(fileId):
     return pandas.read_csv('commute_log_raw.csv', header=None)
 
 def format_CSV(rawCsv):
+    Logger("============== Start formatting commute log ==============")
     rawCsv = rawCsv.replace('Arrived at location', 'A')
     rawCsv = rawCsv.replace('Left location', 'L')
 
@@ -97,14 +99,17 @@ def getLastData(csv):
     #Process arrived time
     listAtime = lineADate[1]
     sorttedA = sorted(listAtime)
+    Logger("pickupped arrived time is " + sorttedA)
     resultCSV.append(sorttedA[0])
 
     #Process left time
     listLtime = lineLDate[1]
     sorttedL = sorted(listLtime)
+    Logger("pickupped left time is " + sorttedL)
     for i in sorttedL:
         resultCSV.append(i)
 
+    Logger("last commute data is " + resultCSV)
     return resultCSV
 
 
@@ -126,7 +131,7 @@ def writeToCurrentCSV(lastData):
 
     #export csv to pandas
     ps = pandas.DataFrame(list2)
-    ps.head(1).to_csv(sys.stdout, header=False, index=False)
+    ps.head(1).to_csv('./commute_log_2018-12.csv', mode='a', header=False, index=False)
 
 
 
