@@ -8,19 +8,18 @@ import sys
 
 def Logger(message):
     currentTime = datetime.datetime.now()
-    print("[" + currentTime.strftime("%Y-%m-%d %H:%M:%S") + "]" + message)
+    print("[" + currentTime.strftime("%Y-%m-%d %H:%M:%S") + "] " + message)
 
 
 def get_file_dec():
-    command = ["gdrive", "list", "-q", "'name contains \"commute\"'"]
-    glist = subprocess.run("gdrive list -q 'name contains \"commute\"'", shell=True,capture_output=True)
+    #command = ["gdrive", "list", "-q", "'name contains \"commute_log_store\" or name contains \"commute_log_IFTTT\"'"]
+    glist = subprocess.run("gdrive list -q 'name contains \"commute_log_store\" or name contains \"commute_log_IFTTT\"'", shell=True,capture_output=True)
 
     strlist = str(glist.stdout)
     splitted = strlist.split('\\n')
     fileDec = {}
 
     for row in splitted:
-        #print(row)
         row2 = re.sub(' +', ' ', row).split(' ')
         if len(row2) >= 2:
             key = row2[1]
@@ -41,12 +40,11 @@ def gen_raw_csv(fileId):
         exit(1)
 
     Logger("Rename commute_log_IFTTT to commute_log_raw.csv")
-    os.rename('commute_log_IFTTT.csv', 'commute_log_raw.csv')
+    os.rename('commute_log_IFTTT.csv', bench + '/commute_log_raw.csv')
 
-    return pandas.read_csv('commute_log_raw.csv', header=None)
+    return pandas.read_csv(bench + '/commute_log_raw.csv', header=None)
 
 def format_CSV(rawCsv):
-    Logger("============== Start formatting commute log ==============")
     rawCsv = rawCsv.replace('Arrived at location', 'A')
     rawCsv = rawCsv.replace('Left location', 'L')
 
@@ -74,42 +72,42 @@ def format_CSV(rawCsv):
         aTime = dt.strftime('%Y/%m/%d %H:%M')
         rawCsv[1][i] = aTime
 
+    Logger('formatted CSV data')
     return rawCsv
 
 def getLastData(csv):
     today = datetime.datetime.now()
-    #yesterday = today - datetime.timedelta(days=1)
-    yesterday = today - datetime.timedelta(days=4)
+    yesterday = today - datetime.timedelta(days=1)
 
     strYesterday = yesterday.strftime('%Y/%m/%d')
     lastData = csv[csv[1].str.contains(strYesterday)]
-    print(lastData)
+    Logger('num of lastData is ' + str(len(lastData)))
 
-    lineA = lastData[lastData[0] == 'A']
-    lineL = lastData[lastData[0] == 'L']
-    # split colume 1 and get it
-    lineADate = lineA[1].str.split(' ', expand=True)
-    lineLDate = lineL[1].str.split(' ', expand=True)
-
-
-    # add date to resultCSV
+    # add yesterday date
     resultCSV = []
     resultCSV.append(strYesterday)
 
-    #Process arrived time
-    listAtime = lineADate[1]
-    sorttedA = sorted(listAtime)
-    Logger("pickupped arrived time is " + sorttedA)
-    resultCSV.append(sorttedA[0])
+    if len(lastData != 0):
+        lineA = lastData[lastData[0] == 'A']
+        lineL = lastData[lastData[0] == 'L']
+        # split colume 1 and get it
+        lineADate = lineA[1].str.split(' ', expand=True)
+        lineLDate = lineL[1].str.split(' ', expand=True)
 
-    #Process left time
-    listLtime = lineLDate[1]
-    sorttedL = sorted(listLtime)
-    Logger("pickupped left time is " + sorttedL)
-    for i in sorttedL:
-        resultCSV.append(i)
+        #Process arrived time
+        listAtime = lineADate[1]
+        sorttedA = sorted(listAtime)
+        Logger("pickupped arrived time is " + str(sorttedA))
+        resultCSV.append(sorttedA[0])
 
-    Logger("last commute data is " + resultCSV)
+        #Process left time
+        listLtime = lineLDate[1]
+        sorttedL = sorted(listLtime)
+        Logger("pickupped left time is " + str(sorttedL))
+        for i in sorttedL:
+            resultCSV.append(i)
+
+    Logger("last commute data is " + str(resultCSV))
     return resultCSV
 
 
@@ -119,47 +117,62 @@ def writeToCurrentCSV(lastData):
     targetDate = today - datetime.timedelta(days=1)
     filedate = targetDate.strftime('%Y-%m')
     filename = 'commute_log_' + filedate + '.csv'
+    filename = 'commute_log_-.csv'
+    Logger('Target CSV file name is ' + filename)
 
     num = len(lastData)
-    list2 = [[0]*num]*2
-    print(list2)
+    #list2 = [[0]*num]*2
+    list2 = [[0]*num]
     col = 0
     for i in lastData:
         list2[0][col] = i
         col = col + 1
 
-
+    Logger('Write data is ' + str(list2))
     #export csv to pandas
     ps = pandas.DataFrame(list2)
-    ps.head(1).to_csv('./commute_log_2018-12.csv', mode='a', header=False, index=False)
+    #ps.head(1).to_csv('~/Documents/commute_log_store/'+filename, mode='a', header=False, index=False)
+    ps.to_csv('/home/ladygrey/Documents/commute_log_store/' + filename, mode='a', header=False, index=False)
+    #ps.head(1).to_csv(sys.stdout, header=False, index=False)
 
 
-
-
+#
+# main main main
+#
 
 Logger("************** Start formating commute log file **************")
 
 bench = "/home/ladygrey/Documents/commute_log_store"
 
 #get file list
-#fileDec = get_file_dec()
+fileDec = get_file_dec()
 
 #check exist commute_log_IFTTT
-#if not ('commute_log_IFTTT' in fileDec):
-#    Logger("[ERROR]Can't find commute_log_IFTTT file.")
-#    exit(1)
+if not ('commute_log_IFTTT' in fileDec):
+    Logger("[ERROR]Can't find commute_log_IFTTT file.")
+    exit(1)
 
 Logger("============== Start downloading commute log file ==============")
 
 #Download commute_log_IFTTT and rename to commute_log_raw.csv
-#rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
-rawCsv = pandas.read_csv('commute_log_raw.csv', header=None)
+rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
+#rawCsv = pandas.read_csv('commute_log_raw.csv', header=None)
 
 #Formatting CSV file
+Logger("============== Start formatting commute log ==============")
 formattedCSV = format_CSV(rawCsv)
 
 #get last day data
 lastData = getLastData(formattedCSV)
 
 #write to current csv file
+Logger("============== Start write commute log ==============")
 writeToCurrentCSV(lastData)
+
+Logger("============== Start sync to gdrive ==============")
+Logger('file id of commute_log_store is ' + fileDec['commute_log_store'])
+result = subprocess.run("gdrive sync upload --no-progress " + bench + " " + fileDec['commute_log_store'], shell=True,capture_output=True)
+
+Logger(str(result.stdout).replace('\\n', '\n'))
+Logger(str(result.stderr))
+print()
