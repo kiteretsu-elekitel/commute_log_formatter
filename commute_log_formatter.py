@@ -5,6 +5,15 @@ import datetime
 import subprocess
 import re
 import sys
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+
+def getCredential():
+    scope = ['https://spreadsheets.google.com/feeds',
+         'https://www.googleapis.com/auth/drive']
+    return ServiceAccountCredentials.from_json_keyfile_name('./cliant_secret.json', scope)
+
 
 def Logger(message):
     currentTime = datetime.datetime.now()
@@ -43,6 +52,16 @@ def gen_raw_csv(fileId):
     os.rename('commute_log_IFTTT.csv', bench + '/commute_log_raw.csv')
 
     return pandas.read_csv(bench + '/commute_log_raw.csv', header=None)
+
+def get_commute_log(credentials):
+    #get authorize
+    gc = gspread.authorize(credentials)
+    wks = gc.open('commute_log_IFTTT').sheet1
+    # get all value of sheet1
+    allList = wks.get_all_values()
+
+    # retuen all sheet values exchanged pandas DataFrame
+    return pandas.DataFrame(allList)
 
 def format_CSV(rawCsv):
     rawCsv = rawCsv.replace('Arrived at location', 'A')
@@ -105,7 +124,17 @@ def getLastData(csv):
         sorttedL = sorted(listLtime)
         Logger("pickupped left time is " + str(sorttedL))
         for i in sorttedL:
-            resultCSV.append(i)
+            hour = int(str(i).split(':')[0])
+            minute = int(str(i).split(':')[1])
+
+            if minute > 29:
+                strminute = '00'
+                strhour = str(hour + 1)
+            else:
+                strminute = '30'
+
+            roundup = strhour + ':' + strminute
+            resultCSV.append(roundup)
 
     Logger("last commute data is " + str(resultCSV))
     return resultCSV
@@ -116,8 +145,8 @@ def writeToCurrentCSV(lastData):
     today = datetime.datetime.now()
     targetDate = today - datetime.timedelta(days=1)
     filedate = targetDate.strftime('%Y-%m')
-    filename = 'commute_log_' + filedate + '.csv'
-    filename = 'commute_log_-.csv'
+    filename = 'commute_log_' + filedate + '_py.csv'
+    #filename = 'commute_log_-.csv'
     Logger('Target CSV file name is ' + filename)
 
     num = len(lastData)
@@ -144,19 +173,24 @@ Logger("************** Start formating commute log file **************")
 
 bench = "/home/ladygrey/Documents/commute_log_store"
 
+# get Google credentials
+Logger("============== get google credentials ==============")
+credentials = getCredential()
+
+
 #get file list
-fileDec = get_file_dec()
+#fileDec = get_file_dec()
 
 #check exist commute_log_IFTTT
-if not ('commute_log_IFTTT' in fileDec):
-    Logger("[ERROR]Can't find commute_log_IFTTT file.")
-    exit(1)
+#if not ('commute_log_IFTTT' in fileDec):
+#    Logger("[ERROR]Can't find commute_log_IFTTT file.")
+#    exit(1)
 
 Logger("============== Start downloading commute log file ==============")
 
 #Download commute_log_IFTTT and rename to commute_log_raw.csv
-rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
-#rawCsv = pandas.read_csv('commute_log_raw.csv', header=None)
+#rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
+rawCsv = get_commute_log(credentials)
 
 #Formatting CSV file
 Logger("============== Start formatting commute log ==============")
@@ -164,14 +198,15 @@ formattedCSV = format_CSV(rawCsv)
 
 #get last day data
 lastData = getLastData(formattedCSV)
-
+print(lastData)
 #write to current csv file
 Logger("============== Start write commute log ==============")
 writeToCurrentCSV(lastData)
 
 Logger("============== Start sync to gdrive ==============")
-Logger('file id of commute_log_store is ' + fileDec['commute_log_store'])
-result = subprocess.run("gdrive sync upload --no-progress " + bench + " " + fileDec['commute_log_store'], shell=True,capture_output=True)
+#Logger('file id of commute_log_store is ' + fileDec['commute_log_store'])
+#result = subprocess.run("gdrive sync upload --no-progress " + bench + " " + fileDec['commute_log_store'], shell=True,capture_output=True)
+result = subprocess.run("skicka upload ~/Documents/commute_log_store /commute_log_store", shell=True,capture_output=True)
 
 Logger(str(result.stdout).replace('\\n', '\n'))
 Logger(str(result.stderr))
