@@ -7,7 +7,11 @@ import re
 import sys
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 
+gauth = GoogleAuth()
+drive = GoogleDrive(gauth)
 
 def getCredential():
     scope = ['https://spreadsheets.google.com/feeds',
@@ -164,6 +168,8 @@ def writeToCurrentCSV(lastData):
     ps.to_csv('/home/ladygrey/Documents/commute_log_store/' + filename, mode='a', header=False, index=False)
     #ps.head(1).to_csv(sys.stdout, header=False, index=False)
 
+    return filename
+
 
 #
 # main main main
@@ -201,13 +207,20 @@ lastData = getLastData(formattedCSV)
 print(lastData)
 #write to current csv file
 Logger("============== Start write commute log ==============")
-writeToCurrentCSV(lastData)
+filename = writeToCurrentCSV(lastData)
 
 Logger("============== Start sync to gdrive ==============")
 #Logger('file id of commute_log_store is ' + fileDec['commute_log_store'])
 #result = subprocess.run("gdrive sync upload --no-progress " + bench + " " + fileDec['commute_log_store'], shell=True,capture_output=True)
-result = subprocess.run("skicka upload ~/Documents/commute_log_store /commute_log_store", shell=True,capture_output=True)
+#result = subprocess.run("skicka upload ~/Documents/commute_log_store /commute_log_store", shell=True,capture_output=True)
 
-Logger(str(result.stdout).replace('\\n', '\n'))
-Logger(str(result.stderr))
+file_list = drive.ListFile({'q': "title = '" + filename + "' and trashed=false"}).GetList()
+gdrivefile = file_list[0]
+
+f = drive.CreateFile({'title':'test.csv', 'mimeType':'text/csv', 'id':gdrivefile['id'], 'parents': [{'id': '0B7_p81hYdRkzNnhhdlhUeHBJWXc'}]})
+f.SetContentFile('/home/ladygrey/Documents/commute_log_store/' + filename)
+f.Upload()
+
+#Logger(str(result.stdout).replace('\\n', '\n'))
+#Logger(str(result.stderr))
 print()
