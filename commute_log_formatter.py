@@ -16,7 +16,7 @@ drive = GoogleDrive(gauth)
 def getCredential():
     scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
-    return ServiceAccountCredentials.from_json_keyfile_name('./cliant_secret.json', scope)
+    return ServiceAccountCredentials.from_json_keyfile_name('/home/ladygrey/script/commute_log_formatter/cliant_secret.json', scope)
 
 
 def Logger(message):
