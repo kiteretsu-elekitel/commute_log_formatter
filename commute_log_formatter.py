@@ -6,12 +6,10 @@ import subprocess
 import re
 import sys
 import gspread
+import oauth2client
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-
-gauth = GoogleAuth()
-drive = GoogleDrive(gauth)
 
 def getCredential():
     scope = ['https://spreadsheets.google.com/feeds',
@@ -63,6 +61,7 @@ def get_commute_log(credentials):
     wks = gc.open('commute_log_IFTTT').sheet1
     # get all value of sheet1
     allList = wks.get_all_values()
+    Logger(pandas.DataFrame(allList))
 
     # retuen all sheet values exchanged pandas DataFrame
     return pandas.DataFrame(allList)
@@ -96,6 +95,7 @@ def format_CSV(rawCsv):
         rawCsv[1][i] = aTime
 
     Logger('formatted CSV data')
+    Logger(rawCsv)
     return rawCsv
 
 def getLastData(csv):
@@ -181,6 +181,8 @@ bench = "/home/ladygrey/Documents/commute_log_store"
 
 # get Google credentials
 Logger("============== get google credentials ==============")
+gauth = GoogleAuth()
+drive = GoogleDrive(gauth)
 credentials = getCredential()
 
 
@@ -198,6 +200,7 @@ Logger("============== Start downloading commute log file ==============")
 #rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
 rawCsv = get_commute_log(credentials)
 
+sys.exit(0)
 #Formatting CSV file
 Logger("============== Start formatting commute log ==============")
 formattedCSV = format_CSV(rawCsv)
@@ -214,9 +217,12 @@ Logger("============== Start sync to gdrive ==============")
 #result = subprocess.run("gdrive sync upload --no-progress " + bench + " " + fileDec['commute_log_store'], shell=True,capture_output=True)
 #result = subprocess.run("skicka upload ~/Documents/commute_log_store /commute_log_store", shell=True,capture_output=True)
 
+Logger("============== get file id ==============")
 file_list = drive.ListFile({'q': "title = '" + filename + "' and trashed=false"}).GetList()
+Logger("target file id is " + file_list[0])
 gdrivefile = file_list[0]
 
+Logger("============== get file id ==============")
 f = drive.CreateFile({'title':'test.csv', 'mimeType':'text/csv', 'id':gdrivefile['id'], 'parents': [{'id': '0B7_p81hYdRkzNnhhdlhUeHBJWXc'}]})
 f.SetContentFile('/home/ladygrey/Documents/commute_log_store/' + filename)
 f.Upload()
