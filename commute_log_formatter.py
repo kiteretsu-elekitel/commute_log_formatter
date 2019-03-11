@@ -200,7 +200,6 @@ Logger("============== Start downloading commute log file ==============")
 #rawCsv = gen_raw_csv(fileDec['commute_log_IFTTT'])
 rawCsv = get_commute_log(credentials)
 
-sys.exit(0)
 #Formatting CSV file
 Logger("============== Start formatting commute log ==============")
 formattedCSV = format_CSV(rawCsv)
