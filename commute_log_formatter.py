@@ -130,12 +130,14 @@ def getLastData(csv):
         for i in sorttedL:
             hour = int(str(i).split(':')[0])
             minute = int(str(i).split(':')[1])
+            strhour = ''
 
             if minute > 29:
                 strminute = '00'
                 strhour = str(hour + 1)
             else:
                 strminute = '30'
+                strhour = str(hour)
 
             roundup = strhour + ':' + strminute
             resultCSV.append(roundup)
@@ -206,7 +208,8 @@ formattedCSV = format_CSV(rawCsv)
 
 #get last day data
 lastData = getLastData(formattedCSV)
-print(lastData)
+Logger(str(lastData))
+
 #write to current csv file
 Logger("============== Start write commute log ==============")
 filename = writeToCurrentCSV(lastData)
