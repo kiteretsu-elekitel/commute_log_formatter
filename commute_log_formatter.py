@@ -219,13 +219,20 @@ Logger("============== Start sync to gdrive ==============")
 #result = subprocess.run("gdrive sync upload --no-progress " + bench + " " + fileDec['commute_log_store'], shell=True,capture_output=True)
 #result = subprocess.run("skicka upload ~/Documents/commute_log_store /commute_log_store", shell=True,capture_output=True)
 
-Logger("============== get file id ==============")
+Logger("============== get file id of gdrive ==============")
 file_list = drive.ListFile({'q': "title = '" + filename + "' and trashed=false"}).GetList()
-Logger("target file id is " + file_list[0])
+if len(file_list) == 0:
+    Logger("Not found current file. make " + filename)
+    newf = drive.CreateFile({'title': filename, 'mimeType':'text/csv', 'parents': [{'id': '0B7_p81hYdRkzNnhhdlhUeHBJWXc'}]})
+    newf.Upload()
+    Logger("get created file id")
+    file_list = drive.ListFile({'q': "title = '" + filename + "' and trashed=false"}).GetList()
+
+Logger("target file id is " + str(file_list[0]))
 gdrivefile = file_list[0]
 
-Logger("============== get file id ==============")
-f = drive.CreateFile({'title':'test.csv', 'mimeType':'text/csv', 'id':gdrivefile['id'], 'parents': [{'id': '0B7_p81hYdRkzNnhhdlhUeHBJWXc'}]})
+Logger("============== start upload file ==============")
+f = drive.CreateFile({'title': filename, 'mimeType':'text/csv', 'id':gdrivefile['id'], 'parents': [{'id': '0B7_p81hYdRkzNnhhdlhUeHBJWXc'}]})
 f.SetContentFile('/home/ladygrey/Documents/commute_log_store/' + filename)
 f.Upload()
 
